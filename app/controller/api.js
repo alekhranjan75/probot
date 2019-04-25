@@ -319,6 +319,9 @@ exports.sendArticleMessage = function (sender, article) {
 }
 
 function _getArticle(callback, newsType) {
+    if (typeof (newsType) === 'undefined') {
+        newsType = "news"
+    }
     var google_endpoint = "https://news.google.com/rss/search?q=%3C"+newsType+"%3E&hl=en-IN&gl=IN&ceid=IN:en"
     rssReader(google_endpoint, function (err, articles) {
         if (err) {
@@ -332,8 +335,8 @@ function _getArticle(callback, newsType) {
         }
     })
 }
-exports.getArticle = function (callback) {
-    _getArticle(callback)
+exports.getArticle = function (callback, newsType) {
+    _getArticle(callback, newsType)
 }
 
 function handleIntent(intent, sender_psid) {
@@ -386,7 +389,7 @@ function handleIntent(intent, sender_psid) {
                     sendTextMessage(sender_psid, "Here's what I found...")
                     _sendArticleMessage(sender_psid, articles[0])
                 }
-            })
+            }, "news")
             break;
         case "sports":
             _getArticle(function (err, articles) {
