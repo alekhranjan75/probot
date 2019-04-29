@@ -1,7 +1,10 @@
 const
     request = require('request'),
     rssReader = require('feed-read'),
+    youtubeThumbnail = require('youtube-thumbnail'),
     properties = require('../config/properties.js');
+    Regex = require("regex");
+var regex = new Regex(/(http)?s?:?(\/\/[^"']*\.(?:png|jpg|jpeg|gif|png|svg))/);
 
 var
     User = require('../model/user');
@@ -48,9 +51,6 @@ exports.handleMessage = function (req, res) {
                 var normalizedText = text.toLowerCase().replace(" ", '')
 
                 switch (normalizedText) {
-                    case "urlbutton":
-                        URLButton(sender_psid);
-                        break;
                     case "share":
                         shareButton(sender_psid);
                         break;
@@ -160,7 +160,32 @@ function callSendAPI(messageData) {
         }
     });
 }
+function callRequestAPI(messageData) {
+    request({
+        "uri": properties.facebook_request_uri,
+        "qs": {
+            "access_token": properties.facebook_token
+        },
+        method: 'POST',
+        json: messageData
 
+    }, function (error, response, body) {
+        if (!error && response.statusCode == 200) {
+            var recipientId = body.recipient_id;
+            var messageId = body.message_id;
+
+            if (messageId) {
+                console.log("Successfully sent message with id %s to recipient %s",
+                    messageId, recipientId);
+            } else {
+                console.log("Successfully called Send API for recipient %s",
+                    recipientId);
+            }
+        } else {
+            console.error("Failed calling Request API", response.statusCode, response.statusMessage, body.error);
+        }
+    });
+}
 
 function sendTextMessage(recipientId, messageText) {
     var messageData = {
@@ -176,6 +201,9 @@ function sendTextMessage(recipientId, messageText) {
     
 }
 function _sendArticleMessage(sender_psid, article) {
+    var regex = /(http)?s?:?(\/\/[^"']*\.(?:png|jpg|jpeg|gif|png|svg))/gi;
+    var image_src = article["content"].match(regex);
+    // console.log(image_src)
     var message_body = {
         recipient: {
             id: sender_psid
@@ -185,13 +213,18 @@ function _sendArticleMessage(sender_psid, article) {
                 type: "template",
                 payload: {
                     template_type: "generic",
-                    elements: [
-                        {
+                        "elements": [{
                             title: article.title,
+                            image_url: image_src[0],
+                            item_url: article.link,
                             subtitle: article.published.toString(),
-                            item_url: article.link
-                        }
-                    ]
+                            "buttons": [{
+                                "type": "web_url",
+                                "url": article.link,
+                                "title": "Read",
+                                "webview_height_ratio": "full"
+                            }]
+                        }]
                 }
             }
         }
@@ -213,7 +246,7 @@ function shareButton(sender_psid) {
                             {
                                 "title": "Breaking News: Record Thunderstorms",
                                 "subtitle": "The local area is due for record thunderstorms over the weekend.",
-                                "image_url": "https://www.accuweather.com/en/weather-news/is-it-safe-to-talk-on-your-cell-phone-during-a-thunderstorm/70004528",
+                                "image_url": "https://i2-prod.gloucestershirelive.co.uk/incoming/article2790617.ece/ALTERNATES/s1200/0_Thunderstorm-at-sunset.jpg",
                                 "buttons": [
                                     {
                                         "type": "element_share",
@@ -278,7 +311,9 @@ function callButton(sender_psid) {
     }
     callSendAPI(message_body)
 }
-function URLButton(sender_psid) {
+function URLButton(sender_psid, videos) {
+    var thumbnail = youtubeThumbnail(videos.link);
+    var image = thumbnail["high"]["url"];
     var message_body = {
         "recipient": {
             "id": sender_psid
@@ -287,20 +322,21 @@ function URLButton(sender_psid) {
             "attachment": {
                 "type": "template",
                 "payload": {
-                    "template_type": "button",
-                    "text": "Try the URL button!",
-                    "buttons": [
-                        {
-                            "type": "web_url",
-                            "url": "google.com",
-                            "title": "URL Button",
-                            "webview_height_ratio": "full"
-                        }
-                    ]
+                    template_type: "generic",
+                        "elements": [{
+                                title: videos.title,
+                                "image_url": image,
+                                     "buttons": [{
+                                            "type": "web_url",
+                                            "url": videos.link,
+                                            "title": "Watch it!",
+                                            "webview_height_ratio": "full"
+                                         }]
+                                     }]
+                             }
+                         }
+                    }
                 }
-            }
-        }
-    }
     callSendAPI(message_body)
 }
 
@@ -320,10 +356,11 @@ exports.sendArticleMessage = function (sender, article) {
 
 function _getArticle(callback, newsType) {
     if (typeof (newsType) === 'undefined') {
-        newsType = "news"
+        newsType = "buzz"
     }
-    var google_endpoint = "https://news.google.com/rss/search?q=%3C"+newsType+"%3E&hl=en-IN&gl=IN&ceid=IN:en"
-    rssReader(google_endpoint, function (err, articles) {
+    // console.log("Called _getArticle")
+    var news_endpoint = "https://www.news18.com/rss/" + newsType + ".xml"
+    rssReader(news_endpoint, function (err, articles) {
         if (err) {
             callback(err)
         } else {
@@ -335,6 +372,61 @@ function _getArticle(callback, newsType) {
         }
     })
 }
+function getVideos(callback) {
+    var youtube_endpoint = "https://www.youtube.com/feeds/videos.xml?channel_id=UCQBWxx8C6zSiwikmoey1yVg"
+    rssReader(youtube_endpoint, function (err, videos) {
+        if (err) {
+            callback(err)
+        } else {        
+            if (videos.length > 0) {
+                console.log(videos.length)
+                callback(null, videos)
+                
+            } else {
+                callback("no videos")
+            }
+        }
+    })
+}
+function sendVideos(sender_psid) {
+    var message_body = {
+        recipient: {
+            id: sender_psid
+        },
+        message: {
+            attachment: {
+                type: "template",
+                payload: {
+                    template_type: "media",
+                    elements: [{
+                        // title:videos.title,
+                        media_type: "video",
+                        url: "https://www.facebook.com/GrowingIndia/videos/2255906558059103/"
+
+                    }]
+                }
+            }
+        }
+    }
+    // Sends the response message
+    callSendAPI(message_body);
+}
+// function uploadVideo() {
+//     console.log("Uploading Video")
+//     var message_body = {
+//         "message": {
+//             "attachment": {
+//                 "type": "video",
+//                 "payload": {
+//                     "is_reusable": true,
+//                     "url": "https://www.facebook.com/fmfpage/videos/571087186716395/"
+//                 }
+//             }
+//         }
+//     }
+//     callRequestAPI(message_body)
+// }
+// uploadVideo();
 exports.getArticle = function (callback, newsType) {
     _getArticle(callback, newsType)
 }
@@ -366,7 +458,7 @@ function handleIntent(intent, sender_psid) {
             sendTextMessage(sender_psid, "Hi! how can I help you...")
             break;
         case "about bot":
-            sendTextMessage(sender_psid, "I'm Newsbot, and I can do a lot of stuff.")
+            sendTextMessage(sender_psid, "I'm Probot, and I can do a lot of stuff.")
             break;
         case "more news":
             _getArticle(function (err, articles) {
@@ -379,7 +471,18 @@ function handleIntent(intent, sender_psid) {
                         _sendArticleMessage(sender_psid, articles[index]);
                      }
                 }
-            },"news");
+            },"buzz");
+            break;
+        case "video":
+            getVideos(function(err, videos) {
+                if (err) {
+                    console.log(err);
+                } else {
+                    sendTextMessage(sender_psid, "Found a video for you...")
+                    // sendVideos(sender_psid)
+                    URLButton(sender_psid, videos[0])
+                }
+            })
             break;
         case "news":
             _getArticle(function (err, articles) {
@@ -415,7 +518,7 @@ function handleIntent(intent, sender_psid) {
                     _sendArticleMessage(sender_psid, articles[index]);
                 }
             }
-        }, "international");
+        }, "world");
         break;
         case "cricket":
         _getArticle(function (err, articles) {

@@ -2,7 +2,6 @@
 
 const
   bodyParser = require('body-parser'),
-  config = require('config'),
   express = require('express'),
   request = require('request'),
   path = require('path');
