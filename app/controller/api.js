@@ -9,20 +9,10 @@ var regex = new Regex(/(http)?s?:?(\/\/[^"']*\.(?:png|jpg|jpeg|gif|png|svg))/);
 var
     User = require('../model/user');
 
-const allJokes = {
-    chuck: [
-        'Chuck Norris counted to infinity - twice.',
-        'Death once had a near-Chuck Norris experience.',
-    ],
-    tech: [
-        'Did you hear about the two antennas that got married? The ceremony was long and boring, but the reception was great!',
-        'Why do geeks mistake Halloween and Christmas? Because Oct 31 === Dec 25.',
-    ],
-    default: [
-        'Why was the Math book sad? Because it had so many problems.',
-        "Today a man knocked on my door and asked for a small donation towards the local swimming pool. I gave him a glass of water."
-    ],
-};
+const allJokes =  [
+        'Why was the Math book sad? Because it had so many problems.😂😂😂😂',
+        "Today a man knocked on my door and asked for a small donation towards the local swimming pool. I gave him a glass of water.😂😂😂"
+    ];
 
 exports.tokenVerification = function (req, res) {
     if (req.query['hub.verify_token'] === properties.facebook_challenge) {
@@ -297,7 +287,7 @@ function callButton(sender_psid) {
                 "type":"template",
                 "payload": {
                     "template_type":"button",
-                    "text":"Need further assistance? Talk to a representative",
+                    "text": "Need further assistance? Talk to a representative 📞📞",
                     "buttons": [
                         {
                             "type":"phone_number",
@@ -312,6 +302,7 @@ function callButton(sender_psid) {
     callSendAPI(message_body)
 }
 function URLButton(sender_psid, videos) {
+    // console.log(videos)
     var thumbnail = youtubeThumbnail(videos.link);
     var image = thumbnail["high"]["url"];
     var message_body = {
@@ -326,6 +317,8 @@ function URLButton(sender_psid, videos) {
                         "elements": [{
                                 title: videos.title,
                                 "image_url": image,
+                                subtitle: videos["author"],
+                                item_url: videos.link,
                                      "buttons": [{
                                             "type": "web_url",
                                             "url": videos.link,
@@ -373,7 +366,7 @@ function _getArticle(callback, newsType) {
     })
 }
 function getVideos(callback) {
-    var youtube_endpoint = "https://www.youtube.com/feeds/videos.xml?channel_id=UCQBWxx8C6zSiwikmoey1yVg"
+    var youtube_endpoint = "https://www.youtube.com/feeds/videos.xml?channel_id=UCrC8mOqJQpoB7NuIMKIS6rQ"
     rssReader(youtube_endpoint, function (err, videos) {
         if (err) {
             callback(err)
@@ -449,9 +442,8 @@ function handleIntent(intent, sender_psid) {
             break;
         
         case "joke":
-            console.log("Working")
-            const jokes = allJokes[category];
-            console.log(allJokes[chuck][0])
+            const jokes = allJokes;
+            // console.log(allJokes[chuck][0])
             sendTextMessage(sender_psid, jokes[Math.floor(Math.random() * jokes.length)])
             break;
         case "greeting":
@@ -480,26 +472,28 @@ function handleIntent(intent, sender_psid) {
                 } else {
                     sendTextMessage(sender_psid, "Found a video for you...")
                     // sendVideos(sender_psid)
-                    URLButton(sender_psid, videos[0])
+                    var maxVideos = Math.min(videos.length, 25)
+                    URLButton(sender_psid, videos[Math.floor(Math.random() * maxVideos)])
                 }
             })
             break;
-        case "news":
-            _getArticle(function (err, articles) {
-                if (err) {
-                    console.log(err);
-                } else {
-                    sendTextMessage(sender_psid, "Here's what I found...")
-                    _sendArticleMessage(sender_psid, articles[0])
-                }
-            }, "news")
-            break;
+        // case "news":
+        //     _getArticle(function (err, articles) {
+        //         if (err) {
+        //             console.log(err);
+        //         } else {
+        //             sendTextMessage(sender_psid, "Here's what I found...")
+        //             _sendArticleMessage(sender_psid, articles[0])
+        //         }
+        //     }, "news")
+        //     break;
+        case "cricket":
         case "sports":
             _getArticle(function (err, articles) {
                 if (err) {
                     console.log(err);
                 } else {
-                    sendTextMessage(sender_psid, "Here are some sports news");
+                    sendTextMessage(sender_psid, "Here are some updates:");
                     var maxArticles = Math.min(articles.length, 5);
                     for (var index = 1; index < maxArticles; index++) {
                         _sendArticleMessage(sender_psid, articles[index]);
@@ -519,20 +513,10 @@ function handleIntent(intent, sender_psid) {
                 }
             }
         }, "world");
-        break;
-        case "cricket":
-        _getArticle(function (err, articles) {
-            if (err) {
-                console.log(err);
-            } else {
-                sendTextMessage(sender_psid, "Here are cricket updates");
-                var maxArticles = Math.min(articles.length, 5);
-                for (var index = 1; index < maxArticles; index++) {
-                    _sendArticleMessage(sender_psid, articles[index]);
-                }
-            }
-        }, "cricket");
-        break;
+            break;
+        case "help":
+            callButton(sender_psid);
+            break;
         default:
             sendTextMessage(sender_psid, "I'm not sure about that one :/")
             break;
