@@ -576,7 +576,7 @@ function callWitAI(query, callback) {
             // console.log("Successfully got %s", response.body);
             try {
                 body = JSON.parse(response.body)
-                intent = body["entities"]["intent"][0]["value"]
+                var intent = body["entities"]["intent"][0]["value"]
                 try {
                    location = body["entities"]["location"][0]["value"] 
                 } catch (error) {
