@@ -66,7 +66,8 @@ var j = schedule.scheduleJob('*/10 * * * *', function () {
     if (users != null) {
       apiController.getArticle(function (err, articles) {
         users.forEach(function (user) {
-          apiController.sendArticleMessage(user.fb_id, articles[0])
+          var maxArticles = Math.min(articles.length, 25)
+          apiController.sendArticleMessage(user.fb, articles[Math.floor(Math.random() * maxArticles)])
         });
       })
     }

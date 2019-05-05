@@ -1,10 +1,11 @@
+"use strict"
 const
     request = require('request'),
     rssReader = require('feed-read'),
     youtubeThumbnail = require('youtube-thumbnail'),
-    properties = require('../config/properties.js');
+    properties = require('../config/properties.js'),
+    weather = require('weather-js'),
     Regex = require("regex");
-var regex = new Regex(/(http)?s?:?(\/\/[^"']*\.(?:png|jpg|jpeg|gif|png|svg))/);
 
 var
     User = require('../model/user');
@@ -41,12 +42,6 @@ exports.handleMessage = function (req, res) {
                 var normalizedText = text.toLowerCase().replace(" ", '')
 
                 switch (normalizedText) {
-                    case "share":
-                        shareButton(sender_psid);
-                        break;
-                    case "call":
-                        callButton(sender_psid);
-                        break;
                     case "buy":
                         buyButton(sender_psid);
                         break;
@@ -63,8 +58,8 @@ exports.handleMessage = function (req, res) {
                         console.log("Called the function subscribeStatus")
                         break;
                     default:
-                        callWitAI(text, function (err, intent) {
-                            handleIntent(intent, sender_psid)
+                        callWitAI(text, function (err, intent, location) {
+                            handleIntent(intent, location, sender_psid)
                         })
                 }
             }
@@ -86,7 +81,7 @@ function subscribeUser(id) {
             sendTextMessage(id, "There was error subscribing you for daily articles");
         } else {
             console.log('User saved successfully!');
-            sendTextMessage(newUser.fb_id, "You've been subscribed!")
+            sendTextMessage(newUser.fb_id, "Congrtulaions! You've been successfully subscribed. 😃")
         }
     });
 }
@@ -208,74 +203,99 @@ function _sendArticleMessage(sender_psid, article) {
                             image_url: image_src[0],
                             item_url: article.link,
                             subtitle: article.published.toString(),
+                            // "buttons": [{
+                            //     "type": "web_url",
+                            //     "url": article.link,
+                            //     "title": "Read",
+                            //     "webview_height_ratio": "full"
+                            // }],
                             "buttons": [{
-                                "type": "web_url",
-                                "url": article.link,
-                                "title": "Read",
-                                "webview_height_ratio": "full"
+                                "type": "element_share",
+                                "share_contents": {
+                                    "attachment": {
+                                        "type": "template",
+                                        "payload": {
+                                            "template_type": "generic",
+                                            "elements": [{
+                                                title: article.title,
+                                                image_url: image_src[0],
+                                                "default_action": {
+                                                    "type": "web_url",
+                                                    url: article.link
+                                                },
+                                                "buttons": [{
+                                                    "type": "web_url",
+                                                    url: article.link,
+                                                    "title": "Read"
+                                                }]
+                                            }]
+                                        }
+                                    }
+                                }
                             }]
                         }]
                 }
             }
+            
         }
     }
     // Sends the response message
     callSendAPI(message_body);
 }
-function shareButton(sender_psid) {
-    var message_body = {
-        recipient: {
-            id: sender_psid
-        },
-        message: {
-            attachment: {
-                type: "template",
-                    payload: {
-                    template_type: "generic",
-                        "elements": [
-                            {
-                                "title": "Breaking News: Record Thunderstorms",
-                                "subtitle": "The local area is due for record thunderstorms over the weekend.",
-                                "image_url": "https://i2-prod.gloucestershirelive.co.uk/incoming/article2790617.ece/ALTERNATES/s1200/0_Thunderstorm-at-sunset.jpg",
-                                "buttons": [
-                                    {
-                                        "type": "element_share",
-                                        "share_contents": {
-                                            "attachment": {
-                                                "type": "template",
-                                                "payload": {
-                                                    "template_type": "generic",
-                                                    "elements": [
-                                                        {
-                                                            "title": "I took the hat quiz",
-                                                            "subtitle": "My result: Fez",
-                                                            "image_url": "https://bot.peters-hats.com/img/hats/fez.jpg",
-                                                            "default_action": {
-                                                                "type": "web_url",
-                                                                "url": "http://m.me/petershats?ref=invited_by_24601"
-                                                            },
-                                                            "buttons": [
-                                                                {
-                                                                    "type": "web_url",
-                                                                    "url": "http://m.me/petershats?ref=invited_by_24601",
-                                                                    "title": "Take Quiz"
-                                                                }
-                                                            ]
-                                                        }
-                                                    ]
-                                                }
-                                            }
-                                        }
-                                    }
-                                ]
-                            }
-                        ]
-                }
-            }
-        }
-    }
-    callSendAPI(message_body)
-} 
+// function shareButton(sender_psid) {
+//     var message_body = {
+//         recipient: {
+//             id: sender_psid
+//         },
+//         message: {
+//             attachment: {
+//                 type: "template",
+//                     payload: {
+//                     template_type: "generic",
+//                         "elements": [
+//                             {
+//                                 "title": "Breaking News: Record Thunderstorms",
+//                                 "subtitle": "The local area is due for record thunderstorms over the weekend.",
+//                                 "image_url": "https://i2-prod.gloucestershirelive.co.uk/incoming/article2790617.ece/ALTERNATES/s1200/0_Thunderstorm-at-sunset.jpg",
+//                                 "buttons": [
+//                                     {
+//                                         "type": "element_share",
+//                                         "share_contents": {
+//                                             "attachment": {
+//                                                 "type": "template",
+//                                                 "payload": {
+//                                                     "template_type": "generic",
+//                                                     "elements": [
+//                                                         {
+//                                                             "title": "I took the hat quiz",
+//                                                             "subtitle": "My result: Fez",
+//                                                             "image_url": "https://bot.peters-hats.com/img/hats/fez.jpg",
+//                                                             "default_action": {
+//                                                                 "type": "web_url",
+//                                                                 "url": "http://m.me/petershats?ref=invited_by_24601"
+//                                                             },
+//                                                             "buttons": [
+//                                                                 {
+//                                                                     "type": "web_url",
+//                                                                     "url": "http://m.me/petershats?ref=invited_by_24601",
+//                                                                     "title": "Read"
+//                                                                 }
+//                                                             ]
+//                                                         }
+//                                                     ]
+//                                                 }
+//                                             }
+//                                         }
+//                                     }
+//                                 ]
+//                             }
+//                         ]
+//                 }
+//             }
+//         }
+//     }
+//     callSendAPI(message_body)
+// } 
 
 function callButton(sender_psid) {
     var message_body = {
@@ -301,7 +321,22 @@ function callButton(sender_psid) {
     }
     callSendAPI(message_body)
 }
-function URLButton(sender_psid, videos) {
+function weatherForecast(sender_psid, city) {
+    weather.find({
+        search: city,
+        degreeType: 'C'
+    }, function (err, result) {
+        if (err) console.log(err);
+        var todayWeather = "In " + result[0]["location"]["name"] + " the temperature is " + result[0]["current"]["temperature"] + "°C" + " and the wind speed is " + result[0]["current"]["windspeed"] + " and it feels like " + result[0]["current"]["skytext"]
+        var nextDayWeather = result[0]["forecast"][2]["day"] + " will be " + result[0]["forecast"][2]["skytextday"] + " with highest temperature of " + result[0]["forecast"][2]["high"] + "°C"
+        var report = todayWeather +" but  "+ nextDayWeather;
+        sendTextMessage(sender_psid, todayWeather + " but  " + nextDayWeather + "😊😊😊");
+        console.log(report)
+    });
+
+}
+
+function sendVideos(sender_psid, videos) {
     // console.log(videos)
     var thumbnail = youtubeThumbnail(videos.link);
     var image = thumbnail["high"]["url"];
@@ -381,29 +416,29 @@ function getVideos(callback) {
         }
     })
 }
-function sendVideos(sender_psid) {
-    var message_body = {
-        recipient: {
-            id: sender_psid
-        },
-        message: {
-            attachment: {
-                type: "template",
-                payload: {
-                    template_type: "media",
-                    elements: [{
-                        // title:videos.title,
-                        media_type: "video",
-                        url: "https://www.facebook.com/GrowingIndia/videos/2255906558059103/"
+// function sendVideos(sender_psid) {
+//     var message_body = {
+//         recipient: {
+//             id: sender_psid
+//         },
+//         message: {
+//             attachment: {
+//                 type: "template",
+//                 payload: {
+//                     template_type: "media",
+//                     elements: [{
+//                         // title:videos.title,
+//                         media_type: "video",
+//                         url: "https://www.facebook.com/GrowingIndia/videos/2255906558059103/"
 
-                    }]
-                }
-            }
-        }
-    }
-    // Sends the response message
-    callSendAPI(message_body);
-}
+//                     }]
+//                 }
+//             }
+//         }
+//     }
+//     // Sends the response message
+//     callSendAPI(message_body);
+// }
 // function uploadVideo() {
 //     console.log("Uploading Video")
 //     var message_body = {
@@ -424,7 +459,8 @@ exports.getArticle = function (callback, newsType) {
     _getArticle(callback, newsType)
 }
 
-function handleIntent(intent, sender_psid) {
+function handleIntent(intent, location, sender_psid) {
+    console.log(intent);
     switch (intent) {
 
         case "wish":
@@ -443,7 +479,6 @@ function handleIntent(intent, sender_psid) {
         
         case "joke":
             const jokes = allJokes;
-            // console.log(allJokes[chuck][0])
             sendTextMessage(sender_psid, jokes[Math.floor(Math.random() * jokes.length)])
             break;
         case "greeting":
@@ -473,7 +508,7 @@ function handleIntent(intent, sender_psid) {
                     sendTextMessage(sender_psid, "Found a video for you...")
                     // sendVideos(sender_psid)
                     var maxVideos = Math.min(videos.length, 25)
-                    URLButton(sender_psid, videos[Math.floor(Math.random() * maxVideos)])
+                    sendVideos(sender_psid, videos[Math.floor(Math.random() * maxVideos)])
                 }
             })
             break;
@@ -517,6 +552,10 @@ function handleIntent(intent, sender_psid) {
         case "help":
             callButton(sender_psid);
             break;
+        case "weather":
+            weatherForecast(sender_psid, location);
+            console.log("called func");
+            break;
         default:
             sendTextMessage(sender_psid, "I'm not sure about that one :/")
             break;
@@ -532,13 +571,19 @@ function callWitAI(query, callback) {
         qs: { access_token: "7VBN3GXGHV6PMBCQOVWNW5LCZNOGUO4O" },
         method: 'GET'
     }, function (error, response, body) {
+        var location
         if (!error && response.statusCode == 200) {
             // console.log("Successfully got %s", response.body);
             try {
                 body = JSON.parse(response.body)
                 intent = body["entities"]["intent"][0]["value"]
+                try {
+                   location = body["entities"]["location"][0]["value"] 
+                } catch (error) {
+                //   console.log("error")
+                }
                 // console.log("in call wit.ai"+body["entities"]["intent"][0]["value"])
-                callback(null, intent)
+                callback(null, intent, location)
             } catch (e) {
                 callback(e)
             }
