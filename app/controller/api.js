@@ -5,15 +5,17 @@ const
     youtubeThumbnail = require('youtube-thumbnail'),
     properties = require('../config/properties.js'),
     weather = require('weather-js'),
+    Parser = require('rss-parser'),
+    convert = require('xml-js'),
     Regex = require("regex");
 
 var
     User = require('../model/user');
 
-const allJokes =  [
-        'Why was the Math book sad? Because it had so many problems.😂😂😂😂',
-        "Today a man knocked on my door and asked for a small donation towards the local swimming pool. I gave him a glass of water.😂😂😂"
-    ];
+const allJokes = [
+    'Why was the Math book sad? Because it had so many problems.😂😂😂😂',
+    "Today a man knocked on my door and asked for a small donation towards the local swimming pool. I gave him a glass of water.😂😂😂"
+];
 
 exports.tokenVerification = function (req, res) {
     if (req.query['hub.verify_token'] === properties.facebook_challenge) {
@@ -58,8 +60,8 @@ exports.handleMessage = function (req, res) {
                         console.log("Called the function subscribeStatus")
                         break;
                     default:
-                        callWitAI(text, function (err, intent, location) {
-                            handleIntent(intent, location, sender_psid)
+                        callWitAI(text, function (err, intent, location, query) {
+                            handleIntent(intent, location, query, sender_psid)
                         })
                 }
             }
@@ -75,7 +77,13 @@ function subscribeUser(id) {
     var newUser = new User({
         fb_id: id,
     });
-    User.findOneAndUpdate({ fb_id: newUser.fb_id }, { fb_id: newUser.fb_id }, { upsert: true }, function (err, user) {
+    User.findOneAndUpdate({
+        fb_id: newUser.fb_id
+    }, {
+        fb_id: newUser.fb_id
+    }, {
+        upsert: true
+    }, function (err, user) {
         if (err) {
             console.log("Error in updating");
             sendTextMessage(id, "There was error subscribing you for daily articles");
@@ -88,7 +96,9 @@ function subscribeUser(id) {
 
 function unsubscribeUser(id) {
     // call the built-in save method to save to the database
-    User.findOneAndRemove({ fb_id: id }, function (err, user) {
+    User.findOneAndRemove({
+        fb_id: id
+    }, function (err, user) {
         if (err) {
             sendTextMessage(id, "There wan error unsubscribing you for daily articles");
         } else {
@@ -99,7 +109,9 @@ function unsubscribeUser(id) {
 }
 
 function subscribeStatus(id) {
-    User.findOne({ fb_id: id }, function (err, user) {
+    User.findOne({
+        fb_id: id
+    }, function (err, user) {
         var Status = false
         if (err) {
             console.log(err)
@@ -120,7 +132,7 @@ function subscribeStatus(id) {
  *
  */
 function callSendAPI(messageData) {
-        request({
+    request({
         "uri": properties.facebook_message_endpoint,
         "qs": {
             "access_token": properties.facebook_token
@@ -145,6 +157,7 @@ function callSendAPI(messageData) {
         }
     });
 }
+
 function callRequestAPI(messageData) {
     request({
         "uri": properties.facebook_request_uri,
@@ -183,8 +196,9 @@ function sendTextMessage(recipientId, messageText) {
     };
 
     callSendAPI(messageData);
-    
+
 }
+
 function _sendArticleMessage(sender_psid, article) {
     var regex = /(http)?s?:?(\/\/[^"']*\.(?:png|jpg|jpeg|gif|png|svg))/gi;
     var image_src = article["content"].match(regex);
@@ -198,45 +212,45 @@ function _sendArticleMessage(sender_psid, article) {
                 type: "template",
                 payload: {
                     template_type: "generic",
-                        "elements": [{
-                            title: article.title,
-                            image_url: image_src[0],
-                            item_url: article.link,
-                            subtitle: article.published.toString(),
-                            // "buttons": [{
-                            //     "type": "web_url",
-                            //     "url": article.link,
-                            //     "title": "Read",
-                            //     "webview_height_ratio": "full"
-                            // }],
-                            "buttons": [{
-                                "type": "element_share",
-                                "share_contents": {
-                                    "attachment": {
-                                        "type": "template",
-                                        "payload": {
-                                            "template_type": "generic",
-                                            "elements": [{
-                                                title: article.title,
-                                                image_url: image_src[0],
-                                                "default_action": {
-                                                    "type": "web_url",
-                                                    url: article.link
-                                                },
-                                                "buttons": [{
-                                                    "type": "web_url",
-                                                    url: article.link,
-                                                    "title": "Read"
-                                                }]
+                    "elements": [{
+                        title: article.title,
+                        image_url: image_src[0],
+                        item_url: article.link,
+                        subtitle: article.published.toString(),
+                        // "buttons": [{
+                        //     "type": "web_url",
+                        //     "url": article.link,
+                        //     "title": "Read",
+                        //     "webview_height_ratio": "full"
+                        // }],
+                        "buttons": [{
+                            "type": "element_share",
+                            "share_contents": {
+                                "attachment": {
+                                    "type": "template",
+                                    "payload": {
+                                        "template_type": "generic",
+                                        "elements": [{
+                                            title: article.title,
+                                            image_url: image_src[0],
+                                            "default_action": {
+                                                "type": "web_url",
+                                                url: article.link
+                                            },
+                                            "buttons": [{
+                                                "type": "web_url",
+                                                url: article.link,
+                                                "title": "Read"
                                             }]
-                                        }
+                                        }]
                                     }
                                 }
-                            }]
+                            }
                         }]
+                    }]
                 }
             }
-            
+
         }
     }
     // Sends the response message
@@ -301,26 +315,25 @@ function callButton(sender_psid) {
     var message_body = {
         "recipient": {
             "id": sender_psid
-  },
+        },
         "message": {
             "attachment": {
-                "type":"template",
+                "type": "template",
                 "payload": {
-                    "template_type":"button",
+                    "template_type": "button",
                     "text": "Need further assistance? Talk to a representative 📞📞",
-                    "buttons": [
-                        {
-                            "type":"phone_number",
-                            "title":"Call Representative",
-                            "payload":"+919068787418"
-          }
-                    ]
+                    "buttons": [{
+                        "type": "phone_number",
+                        "title": "Call Representative",
+                        "payload": "+919068787418"
+                    }]
                 }
             }
         }
     }
     callSendAPI(message_body)
 }
+
 function weatherForecast(sender_psid, city) {
     weather.find({
         search: city,
@@ -329,7 +342,7 @@ function weatherForecast(sender_psid, city) {
         if (err) console.log(err);
         var todayWeather = "In " + result[0]["location"]["name"] + " the temperature is " + result[0]["current"]["temperature"] + "°C" + " and the wind speed is " + result[0]["current"]["windspeed"] + " and it feels like " + result[0]["current"]["skytext"]
         var nextDayWeather = result[0]["forecast"][2]["day"] + " will be " + result[0]["forecast"][2]["skytextday"] + " with highest temperature of " + result[0]["forecast"][2]["high"] + "°C"
-        var report = todayWeather +" but  "+ nextDayWeather;
+        var report = todayWeather + " but  " + nextDayWeather;
         sendTextMessage(sender_psid, todayWeather + " but  " + nextDayWeather + "😊😊😊");
         console.log(report)
     });
@@ -349,22 +362,22 @@ function sendVideos(sender_psid, videos) {
                 "type": "template",
                 "payload": {
                     template_type: "generic",
-                        "elements": [{
-                                title: videos.title,
-                                "image_url": image,
-                                subtitle: videos["author"],
-                                item_url: videos.link,
-                                     "buttons": [{
-                                            "type": "web_url",
-                                            "url": videos.link,
-                                            "title": "Watch it!",
-                                            "webview_height_ratio": "full"
-                                         }]
-                                     }]
-                             }
-                         }
-                    }
+                    "elements": [{
+                        title: videos.title,
+                        "image_url": image,
+                        subtitle: videos["author"],
+                        item_url: videos.link,
+                        "buttons": [{
+                            "type": "web_url",
+                            "url": videos.link,
+                            "title": "Watch it!",
+                            "webview_height_ratio": "full"
+                        }]
+                    }]
                 }
+            }
+        }
+    }
     callSendAPI(message_body)
 }
 
@@ -373,10 +386,48 @@ function buyButton(sender_psid) {
         "recipient": {
             "id": sender_psid
         },
-         'message': { 'attachment': { 'type': 'template', 'payload': { 'text': 'Please checkout.', 'template_type': 'button', 'buttons': [{ 'payment_summary': { 'merchant_name': "Peter's Apparel", 'currency': 'USD', 'payment_type': 'FIXED_AMOUNT', 'price_list': [{ 'amount': '29.99', 'label': 'Subtotal' }, { 'amount': '2.47', 'label': 'Taxes' }], 'requested_user_info': ['contact_name'], 'is_test_payment': true }, 'type': 'payment', 'payload': 'DEVELOPER_DEFINED_PAYLOAD', 'title': 'buy' }, { 'type': 'postback', 'payload': '{"title": "Confirm Order", "event_value": "", "event_name": "confirm_order"}', 'title': 'Confirm Order' }, { 'type': 'postback', 'payload': '{"title": "Add Coupon Code", "event_value": "", "event_name": "add_coupon"}', 'title': 'Add Coupon Code' }] } } }, 'recipient': { 'id': '1232211580183568' } 
+        'message': {
+            'attachment': {
+                'type': 'template',
+                'payload': {
+                    'text': 'Please checkout.',
+                    'template_type': 'button',
+                    'buttons': [{
+                        'payment_summary': {
+                            'merchant_name': "Peter's Apparel",
+                            'currency': 'USD',
+                            'payment_type': 'FIXED_AMOUNT',
+                            'price_list': [{
+                                'amount': '29.99',
+                                'label': 'Subtotal'
+                            }, {
+                                'amount': '2.47',
+                                'label': 'Taxes'
+                            }],
+                            'requested_user_info': ['contact_name'],
+                            'is_test_payment': true
+                        },
+                        'type': 'payment',
+                        'payload': 'DEVELOPER_DEFINED_PAYLOAD',
+                        'title': 'buy'
+                    }, {
+                        'type': 'postback',
+                        'payload': '{"title": "Confirm Order", "event_value": "", "event_name": "confirm_order"}',
+                        'title': 'Confirm Order'
+                    }, {
+                        'type': 'postback',
+                        'payload': '{"title": "Add Coupon Code", "event_value": "", "event_name": "add_coupon"}',
+                        'title': 'Add Coupon Code'
+                    }]
+                }
+            }
+        },
+        'recipient': {
+            'id': '1232211580183568'
         }
-        callSendAPI(message_body)
     }
+    callSendAPI(message_body)
+}
 
 exports.sendArticleMessage = function (sender, article) {
     _sendArticleMessage(sender, article)
@@ -400,16 +451,17 @@ function _getArticle(callback, newsType) {
         }
     })
 }
+
 function getVideos(callback) {
     var youtube_endpoint = "https://www.youtube.com/feeds/videos.xml?channel_id=UCrC8mOqJQpoB7NuIMKIS6rQ"
     rssReader(youtube_endpoint, function (err, videos) {
         if (err) {
             callback(err)
-        } else {        
+        } else {
             if (videos.length > 0) {
-                console.log(videos.length)
+                // console.log(videos.length)
                 callback(null, videos)
-                
+
             } else {
                 callback("no videos")
             }
@@ -459,8 +511,11 @@ exports.getArticle = function (callback, newsType) {
     _getArticle(callback, newsType)
 }
 
-function handleIntent(intent, location, sender_psid) {
+function handleIntent(intent, location, query, sender_psid) {
+    // intent = "wiki"
     console.log(intent);
+    console.log(query);
+    console.log(location)
     switch (intent) {
 
         case "wish":
@@ -476,16 +531,17 @@ function handleIntent(intent, location, sender_psid) {
                 greet = 'Good Evening';
             sendTextMessage(sender_psid, greet)
             break;
-        
+
         case "joke":
             const jokes = allJokes;
             sendTextMessage(sender_psid, jokes[Math.floor(Math.random() * jokes.length)])
             break;
         case "greeting":
-            sendTextMessage(sender_psid, "Hi! how can I help you...")
+            sendTextMessage(sender_psid, 'Hi! 🙋🙋 how can I help you..., to know what I can do type "Get Started"');
             break;
+        case "get started":
         case "about bot":
-            sendTextMessage(sender_psid, "I'm Probot, and I can do a lot of stuff.")
+            sendTextMessage(sender_psid, "I'm Probot, and I can do things like search news for you or a video and even serch an article on wikipedia for you.")
             break;
         case "more news":
             _getArticle(function (err, articles) {
@@ -496,12 +552,12 @@ function handleIntent(intent, location, sender_psid) {
                     var maxArticles = Math.min(articles.length, 5);
                     for (var index = 1; index < maxArticles; index++) {
                         _sendArticleMessage(sender_psid, articles[index]);
-                     }
+                    }
                 }
-            },"buzz");
+            }, "buzz");
             break;
         case "video":
-            getVideos(function(err, videos) {
+            getVideos(function (err, videos) {
                 if (err) {
                     console.log(err);
                 } else {
@@ -512,16 +568,32 @@ function handleIntent(intent, location, sender_psid) {
                 }
             })
             break;
-        // case "news":
-        //     _getArticle(function (err, articles) {
-        //         if (err) {
-        //             console.log(err);
-        //         } else {
-        //             sendTextMessage(sender_psid, "Here's what I found...")
-        //             _sendArticleMessage(sender_psid, articles[0])
-        //         }
-        //     }, "news")
-        //     break;
+        case "wiki":
+            if(query == undefined) {
+                query = location
+            }
+            getWiki(function (err, wiki) {
+                if (err) {
+                    console.log(err)
+                } else {
+                    sendTextMessage(sender_psid, "Related search results are: ")
+                    parseWiki(sender_psid, wiki)
+                }
+            }, query)
+            break;
+        case "gratitude":
+            sendTextMessage(sender_psid, "Glad to hear that! 😊😊😊");
+            break;
+            // case "news":
+            //     _getArticle(function (err, articles) {
+            //         if (err) {
+            //             console.log(err);
+            //         } else {
+            //             sendTextMessage(sender_psid, "Here's what I found...")
+            //             _sendArticleMessage(sender_psid, articles[0])
+            //         }
+            //     }, "news")
+            //     break;
         case "cricket":
         case "sports":
             _getArticle(function (err, articles) {
@@ -534,20 +606,20 @@ function handleIntent(intent, location, sender_psid) {
                         _sendArticleMessage(sender_psid, articles[index]);
                     }
                 }
-            },"sports");
+            }, "sports");
             break;
         case "international news":
-        _getArticle(function (err, articles) {
-            if (err) {
-                console.log(err);
-            } else {
-                sendTextMessage(sender_psid, "These are some of the international headlines");
-                var maxArticles = Math.min(articles.length, 5);
-                for (var index = 1; index < maxArticles; index++) {
-                    _sendArticleMessage(sender_psid, articles[index]);
+            _getArticle(function (err, articles) {
+                if (err) {
+                    console.log(err);
+                } else {
+                    sendTextMessage(sender_psid, "These are some of the international headlines");
+                    var maxArticles = Math.min(articles.length, 5);
+                    for (var index = 1; index < maxArticles; index++) {
+                        _sendArticleMessage(sender_psid, articles[index]);
+                    }
                 }
-            }
-        }, "world");
+            }, "world");
             break;
         case "help":
             callButton(sender_psid);
@@ -565,25 +637,29 @@ function handleIntent(intent, location, sender_psid) {
 
 function callWitAI(query, callback) {
     query = encodeURIComponent(query);
-    // console.log(query)
     request({
         uri: properties.wit_endpoint + query,
-        qs: { access_token: "7VBN3GXGHV6PMBCQOVWNW5LCZNOGUO4O" },
+        qs: {
+            access_token: "7VBN3GXGHV6PMBCQOVWNW5LCZNOGUO4O"
+        },
         method: 'GET'
     }, function (error, response, body) {
-        var location
+        var location, wiki
         if (!error && response.statusCode == 200) {
             // console.log("Successfully got %s", response.body);
             try {
                 body = JSON.parse(response.body)
                 var intent = body["entities"]["intent"][0]["value"]
                 try {
-                   location = body["entities"]["location"][0]["value"] 
+                    location = body["entities"]["location"][0]["value"]
                 } catch (error) {
-                //   console.log("error")
                 }
+                try {
+                    wiki = body["entities"]["wikipedia_search_query"][0]["value"]
+                    console.log("query @:"+wiki)
+                } catch (error) {}
                 // console.log("in call wit.ai"+body["entities"]["intent"][0]["value"])
-                callback(null, intent, location)
+                callback(null, intent, location, wiki)
             } catch (e) {
                 callback(e)
             }
@@ -593,4 +669,79 @@ function callWitAI(query, callback) {
             callback(error)
         }
     });
+}
+
+function getWiki(callback, query) {
+    var url = "https://en.wikipedia.org/w/api.php?action=opensearch&search=" + query + "&format=xml";
+    request(url, function (err, response, body) {
+        if (err) {
+            console.log("connection error");
+        } else {
+            var result = convert.xml2json(body, {
+                compact: false,
+                spaces: 2
+            });
+            // console.log(result)
+            var res = JSON.parse(result);
+            // console.log(res)
+            callback(null, res);
+        }
+    });
+}
+
+function parseWiki(sender_psid, wiki) {
+    var ele = wiki["elements"][0]["elements"][1]["elements"];
+    var data = {}
+    for (let index = 0; index < 4; index++) {
+        var title = ele[index]["elements"][0]["elements"][0]["text"]
+        var link = ele[index]["elements"][1]["elements"][0]["text"]
+        var subtitle = ele[index]["elements"][2]["elements"][0]["text"]
+        try {
+            var image = ele[index]["elements"][3]["attributes"]["source"]
+            var i = image.lastIndexOf("/")
+            image = image.slice(0, i+1) + image.slice(i+3);
+            image = image.replace(/px/g, '1024$&')
+        } catch (error) {
+            var image = "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Wiki-black.png/1024px-Wiki-black.png"
+        }
+        console.log(title+": "+ image)
+        data.title = title;
+        data.link = link;
+        data.image = image;
+        data.subtitle = subtitle;
+        sendWiki(sender_psid, data);
+        if (ele[index+1]== undefined) {
+            break;
+        }
+    }      
+}
+
+function sendWiki(sender_psid, wiki) {
+     var message_body = {
+         "recipient": {
+             "id": sender_psid
+         },
+         "message": {
+             "attachment": {
+                 "type": "template",
+                 "payload": {
+                     template_type: "generic",
+                     "elements": [{
+                         title: wiki.title,
+                         "image_url": wiki.image,
+                         item_url: wiki.link,
+                         subtitle: wiki.subtitle,
+                         "buttons": [{
+                             "type": "web_url",
+                             "url": wiki.link,
+                             "title": "Read On Wikipedia",
+                             "webview_height_ratio": "full"
+                         }]
+                     }]
+                 }
+             }
+         }
+     }
+    //  console.log("Called SendWiki")
+     callSendAPI(message_body)
 }
