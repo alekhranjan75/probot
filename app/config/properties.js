@@ -10,7 +10,8 @@ exports.wit_endpoint = 'https://api.wit.ai/message?v=20190412&q=';
 
 // /**Atlas mongo DB api */
 // b1b156f4 - f016 - 4a3d - 97e0 - 9bdf02831100
-
+/**YouTube Key */
+exports.youtube_key = "AIzaSyCi6UcCcecL6an8kU4FoYkx6NYlAXsgOps"
 /**database:
  *  user = admin
  *  password = ZaW7Uy8y77dpFUK

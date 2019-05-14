@@ -69,7 +69,7 @@ var j = schedule.scheduleJob('*/10 * * * *', function () {
           var maxArticles = Math.min(articles.length, 25)
           apiController.sendArticleMessage(user.fb, articles[Math.floor(Math.random() * maxArticles)])
         });
-      })
+      }, "buzz")
     }
   });
 });
