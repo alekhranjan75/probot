@@ -60,19 +60,34 @@ mongoose.connect(uri, {
   }
 );
 
-var j = schedule.scheduleJob('*/10 * * * *', function () {
+var news = schedule.scheduleJob('*/10 * * * *', function () {
 
   User.find({}, function (err, users) {
     if (users != null) {
       apiController.getArticle(function (err, articles) {
         users.forEach(function (user) {
-          var maxArticles = Math.min(articles.length, 25)
-          apiController.sendArticleMessage(user.fb, articles[Math.floor(Math.random() * maxArticles)])
+          var max = Math.min(articles.length, 25)
+          apiController.sendText(user.fb_id, "Here is your daily news update...")
+          apiController.sendArticleMessage(user.fb_id, articles[Math.floor(Math.random() * max)])
         });
       }, "buzz")
     }
   });
 });
+var video = schedule.scheduleJob('*/10 * * * *', function () {
+   
+   User.find({}, function (err, users) {
+     if (users != null) {
+     apiController.videos(function(err, videos) {
+        users.forEach(function (user) {
+          var max = Math.min(videos.length, 25)
+          apiController.sendText(user.fb_id, "Found a daily video for you...")
+          apiController.sendVideos(user.fb_id, videos[Math.floor(Math.random() * max)])
+        });
+      })
+    }
+   })
+})
 
 app.listen(app.get('port'), function () {
   console.log('Node app is running on port', app.get('port'));

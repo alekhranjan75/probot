@@ -198,6 +198,9 @@ function sendTextMessage(recipientId, messageText) {
     callSendAPI(messageData);
 
 }
+exports.sendText = function (recipientId, messageText) {
+    sendTextMessage(recipientId, messageText)
+}
 
 function _sendArticleMessage(sender_psid, article) {
     var regex = /(http)?s?:?(\/\/[^"']*\.(?:png|jpg|jpeg|gif|png|svg))/gi;
@@ -380,6 +383,9 @@ function sendVideos(sender_psid, videos) {
     }
     callSendAPI(message_body)
 }
+exports.sendVideos = function(sender_psid, videos) {
+    sendVideos(sender_psid, videos)
+}
 
 function buyButton(sender_psid) {
     var message_body = {
@@ -467,6 +473,9 @@ function getVideos(callback) {
             }
         }
     })
+}
+exports.videos = function (callback) {
+    getVideos(callback)
 }
 // function sendVideos(sender_psid) {
 //     var message_body = {
@@ -747,21 +756,21 @@ function sendWiki(sender_psid, wiki) {
 }
 
 
-var {google} = require('googleapis');
-var youtube = google.youtube({
-    version: 'v3',
-    auth: properties.youtube_key
-});
+// var {google} = require('googleapis');
+// var youtube = google.youtube({
+//     version: 'v3',
+//     auth: properties.youtube_key
+// });
 
 
-youtube.search.list({
-    part: 'snippet',
-    q: 'Iskcon'
-}, function (err, data) {
-    if (err) {
-        console.error('Error: ' + err);
-    }
-    if (data) {
-        console.log(data)
-    }
-});
+// youtube.search.list({
+//     part: 'snippet',
+//     q: 'Iskcon'
+// }, function (err, data) {
+//     if (err) {
+//         console.error('Error: ' + err);
+//     }
+//     if (data) {
+//         console.log(data)
+//     }
+// });
