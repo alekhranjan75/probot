@@ -14,7 +14,8 @@ var
 
 const allJokes = [
     'Why was the Math book sad? Because it had so many problems.😂😂😂😂',
-    "Today a man knocked on my door and asked for a small donation towards the local swimming pool. I gave him a glass of water.😂😂😂"
+    "Today a man knocked on my door and asked for a small donation towards the local swimming pool. I gave him a glass of water.😂😂😂",
+    "2 bachche aapas mein baaten kar rahe the\n1 bachcha: mere daada jee 50 laakh chhod kar mare the\n2 bachcha: isamen kaun see badi baat hai mere daada jee\nsaari duniya chhod kar mare the"
 ];
 
 exports.tokenVerification = function (req, res) {
@@ -534,7 +535,7 @@ function handleIntent(intent, location, query, sender_psid) {
             console.log(hrs)
             if (hrs < 12)
                 greet = 'Good Morning';
-            else if (hrs >= 12 && hrs <= 17)
+            else if (hrs >= 12 && hrs < 17)
                 greet = 'Good Afternoon';
             else if (hrs >= 17 && hrs <= 24)
                 greet = 'Good Evening';
@@ -543,14 +544,14 @@ function handleIntent(intent, location, query, sender_psid) {
 
         case "joke":
             const jokes = allJokes;
-            sendTextMessage(sender_psid, jokes[Math.floor(Math.random() * jokes.length)])
+            sendTextMessage(sender_psid, jokes[/*Math.floor(Math.random() * jokes.length)*/2])
             break;
         case "greeting":
-            sendTextMessage(sender_psid, 'Hi! 🙋‍♂️🙋‍♂️ how can I help you..., to know what I can do type "Get Started"');
+            sendTextMessage(sender_psid, 'Hi! 🙋‍♂️🙋‍♂️\nHow can I help you?\nTo know what I can do type\n"Get Started"');
             break;
         case "get started":
         case "about bot":
-            sendTextMessage(sender_psid, "I'm Probot, and I can do things like search news for you or a video and even search an article on wikipedia for you.")
+            sendTextMessage(sender_psid, 'I am Probot 🤖.\nI can do things like\n1.Get news for you:\n  "Show some sports news"\n  "What are the international updates"\n\n2.Send videos:\n  "send a video"\n  "Show me a video"\n\n3.Search articles on wikipedia for you:\n  "Search on wiki about USA"\n\n4.I can even even tell you the weather of a location:\n  "What is the weather in Kolkata"\n\nAnd subscribe for much more')
             break;
         case "more news":
             _getArticle(function (err, articles) {
@@ -590,8 +591,17 @@ function handleIntent(intent, location, query, sender_psid) {
                 }
             }, query)
             break;
+        case "subscribe":
+            subscribeUser(sender_psid);
+            break;
+        case "unsubscribe":
+            unsubscribeUser(sender_psid);
+            break;
+        case "subscribe status":
+            subscribeStatus(sender_psid);
+            break;
         case "gratitude":
-            sendTextMessage(sender_psid, "Glad to hear that! 😊😊😊");
+            sendTextMessage(sender_psid, "Glad to hear that!\n\n😊😊😊");
             break;
             // case "news":
             //     _getArticle(function (err, articles) {
