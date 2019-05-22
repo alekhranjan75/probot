@@ -15,7 +15,7 @@ var
 const allJokes = [
     'Why was the Math book sad? Because it had so many problems.😂😂😂😂',
     "Today a man knocked on my door and asked for a small donation towards the local swimming pool. I gave him a glass of water.😂😂😂",
-    "2 bachche aapas mein baaten kar rahe the\n1 bachcha: mere daada jee 50 laakh chhod kar mare the\n2 bachcha: isamen kaun see badi baat hai mere daada jee\nsaari duniya chhod kar mare the"
+    "2 bachche aapas mein baaten kar rahe the\n1 bachcha: mere daada jee 50 laakh chhod kar mare the\n2 bachcha: isamen kaun see badi baat hai mere daada jee\nsaari duniya chhod kar mare the😂😂"
 ];
 
 exports.tokenVerification = function (req, res) {
