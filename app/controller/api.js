@@ -384,7 +384,7 @@ function sendVideos(sender_psid, videos) {
     }
     callSendAPI(message_body)
 }
-exports.sendVideos = function(sender_psid, videos) {
+exports.sendVideos = function (sender_psid, videos) {
     sendVideos(sender_psid, videos)
 }
 
@@ -544,7 +544,7 @@ function handleIntent(intent, location, query, sender_psid) {
 
         case "joke":
             const jokes = allJokes;
-            sendTextMessage(sender_psid, jokes[/*Math.floor(Math.random() * jokes.length)*/2])
+            sendTextMessage(sender_psid, jokes[ /*Math.floor(Math.random() * jokes.length)*/ 2])
             break;
         case "greeting":
             sendTextMessage(sender_psid, 'Hi! 🙋‍♂️🙋‍♂️\nHow can I help you?\nTo know what I can do type\n"Get Started"');
@@ -553,18 +553,9 @@ function handleIntent(intent, location, query, sender_psid) {
         case "about bot":
             sendTextMessage(sender_psid, 'I am Probot 🤖.\nI can do things like\n1.Get news for you:\n  "Show some sports news"\n  "What are the international updates"\n\n2.Send videos:\n  "send a video"\n  "Show me a video"\n\n3.Search articles on wikipedia for you:\n  "Search on wiki about USA"\n\n4.I can even even tell you the weather of a location:\n  "What is the weather in Kolkata"\n\nAnd subscribe for much more')
             break;
-        case "more news":
-            _getArticle(function (err, articles) {
-                if (err) {
-                    console.log(err);
-                } else {
-                    sendTextMessage(sender_psid, "How about these?")
-                    var maxArticles = Math.min(articles.length, 5);
-                    for (var index = 1; index < maxArticles; index++) {
-                        _sendArticleMessage(sender_psid, articles[index]);
-                    }
-                }
-            }, "buzz");
+        case "weather":
+            weatherForecast(sender_psid, location);
+            console.log("called func");
             break;
         case "video":
             getVideos(function (err, videos) {
@@ -579,7 +570,7 @@ function handleIntent(intent, location, query, sender_psid) {
             })
             break;
         case "wiki":
-            if(query == undefined) {
+            if (query == undefined) {
                 query = location
             }
             getWiki(function (err, wiki) {
@@ -603,16 +594,20 @@ function handleIntent(intent, location, query, sender_psid) {
         case "gratitude":
             sendTextMessage(sender_psid, "Glad to hear that!\n\n😊😊😊");
             break;
-            // case "news":
-            //     _getArticle(function (err, articles) {
-            //         if (err) {
-            //             console.log(err);
-            //         } else {
-            //             sendTextMessage(sender_psid, "Here's what I found...")
-            //             _sendArticleMessage(sender_psid, articles[0])
-            //         }
-            //     }, "news")
-            //     break;
+        case "news":
+        case "more news":
+            _getArticle(function (err, articles) {
+                if (err) {
+                    console.log(err);
+                } else {
+                    sendTextMessage(sender_psid, "How about these?")
+                    var maxArticles = Math.min(articles.length, 5);
+                    for (var index = 1; index < maxArticles; index++) {
+                        _sendArticleMessage(sender_psid, articles[index]);
+                    }
+                }
+            }, "buzz");
+            break;
         case "cricket":
         case "sports":
             _getArticle(function (err, articles) {
@@ -643,10 +638,6 @@ function handleIntent(intent, location, query, sender_psid) {
         case "help":
             callButton(sender_psid);
             break;
-        case "weather":
-            weatherForecast(sender_psid, location);
-            console.log("called func");
-            break;
         default:
             sendTextMessage(sender_psid, "I'm not sure about that one :/")
             break;
@@ -671,11 +662,10 @@ function callWitAI(query, callback) {
                 var intent = body["entities"]["intent"][0]["value"]
                 try {
                     location = body["entities"]["location"][0]["value"]
-                } catch (error) {
-                }
+                } catch (error) {}
                 try {
                     wiki = body["entities"]["wikipedia_search_query"][0]["value"]
-                    console.log("query @:"+wiki)
+                    console.log("query @:" + wiki)
                 } catch (error) {}
                 // console.log("in call wit.ai"+body["entities"]["intent"][0]["value"])
                 callback(null, intent, location, wiki)
@@ -718,51 +708,51 @@ function parseWiki(sender_psid, wiki) {
         try {
             var image = ele[index]["elements"][3]["attributes"]["source"]
             var i = image.lastIndexOf("/")
-            image = image.slice(0, i+1) + image.slice(i+3);
+            image = image.slice(0, i + 1) + image.slice(i + 3);
             image = image.replace(/px/g, '1024$&')
         } catch (error) {
             var image = "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Wiki-black.png/1024px-Wiki-black.png"
         }
-        console.log(title+": "+ image)
+        console.log(title + ": " + image)
         data.title = title;
         data.link = link;
         data.image = image;
         data.subtitle = subtitle;
         sendWiki(sender_psid, data);
-        if (ele[index+1]== undefined) {
+        if (ele[index + 1] == undefined) {
             break;
         }
-    }      
+    }
 }
 
 function sendWiki(sender_psid, wiki) {
-     var message_body = {
-         "recipient": {
-             "id": sender_psid
-         },
-         "message": {
-             "attachment": {
-                 "type": "template",
-                 "payload": {
-                     template_type: "generic",
-                     "elements": [{
-                         title: wiki.title,
-                         "image_url": wiki.image,
-                         item_url: wiki.link,
-                         subtitle: wiki.subtitle,
-                         "buttons": [{
-                             "type": "web_url",
-                             "url": wiki.link,
-                             "title": "Read On Wikipedia",
-                             "webview_height_ratio": "full"
-                         }]
-                     }]
-                 }
-             }
-         }
-     }
+    var message_body = {
+        "recipient": {
+            "id": sender_psid
+        },
+        "message": {
+            "attachment": {
+                "type": "template",
+                "payload": {
+                    template_type: "generic",
+                    "elements": [{
+                        title: wiki.title,
+                        "image_url": wiki.image,
+                        item_url: wiki.link,
+                        subtitle: wiki.subtitle,
+                        "buttons": [{
+                            "type": "web_url",
+                            "url": wiki.link,
+                            "title": "Read On Wikipedia",
+                            "webview_height_ratio": "full"
+                        }]
+                    }]
+                }
+            }
+        }
+    }
     //  console.log("Called SendWiki")
-     callSendAPI(message_body)
+    callSendAPI(message_body)
 }
 
 
