@@ -206,6 +206,7 @@ exports.sendText = function (recipientId, messageText) {
 function _sendArticleMessage(sender_psid, article) {
     var regex = /(http)?s?:?(\/\/[^"']*\.(?:png|jpg|jpeg|gif|png|svg))/gi;
     var image_src = article["content"].match(regex);
+    // console.log("This is also working----------")
     // console.log(image_src)
     var message_body = {
         recipient: {
@@ -221,36 +222,37 @@ function _sendArticleMessage(sender_psid, article) {
                         image_url: image_src[0],
                         item_url: article.link,
                         subtitle: article.published.toString(),
-                        // "buttons": [{
-                        //     "type": "web_url",
-                        //     "url": article.link,
-                        //     "title": "Read",
-                        //     "webview_height_ratio": "full"
-                        // }],
                         "buttons": [{
-                            "type": "element_share",
-                            "share_contents": {
-                                "attachment": {
-                                    "type": "template",
-                                    "payload": {
-                                        "template_type": "generic",
-                                        "elements": [{
-                                            title: article.title,
-                                            image_url: image_src[0],
-                                            "default_action": {
-                                                "type": "web_url",
-                                                url: article.link
-                                            },
-                                            "buttons": [{
-                                                "type": "web_url",
-                                                url: article.link,
-                                                "title": "Read"
-                                            }]
-                                        }]
-                                    }
-                                }
-                            }
-                        }]
+                            "type": "web_url",
+                            "url": article.link,
+                            "title": "Read",
+                            "webview_height_ratio": "full"
+                        }],
+                        //Share button deprecated by facebook so it's of no use
+                        // "buttons": [{
+                        //     "type": "element_share",
+                        //     "share_contents": {
+                        //         "attachment": {
+                        //             "type": "template",
+                        //             "payload": {
+                        //                 "template_type": "generic",
+                        //                 "elements": [{
+                        //                     title: article.title,
+                        //                     image_url: image_src[0],
+                        //                     "default_action": {
+                        //                         "type": "web_url",
+                        //                         url: article.link
+                        //                     },
+                        //                     "buttons": [{
+                        //                         "type": "web_url",
+                        //                         url: article.link,
+                        //                         "title": "Read"
+                        //                     }]
+                        //                 }]
+                        //             }
+                        //         }
+                        //     }
+                        // }]
                     }]
                 }
             }
@@ -451,6 +453,7 @@ function _getArticle(callback, newsType) {
             callback(err)
         } else {
             if (articles.length > 0) {
+                // console.log("Found some articles--------")
                 callback(null, articles)
             } else {
                 callback("no articles")
@@ -704,9 +707,9 @@ function parseWiki(sender_psid, wiki) {
     for (let index = 0; index < 4; index++) {
         var title = ele[index]["elements"][0]["elements"][0]["text"]
         var link = ele[index]["elements"][1]["elements"][0]["text"]
-        var subtitle = ele[index]["elements"][2]["elements"][0]["text"]
+        // var subtitle = ele[index]["elements"][2]["elements"][0]["text"]
         try {
-            var image = ele[index]["elements"][3]["attributes"]["source"]
+            var image = ele[index]["elements"][2]["attributes"]["source"]
             var i = image.lastIndexOf("/")
             image = image.slice(0, i + 1) + image.slice(i + 3);
             image = image.replace(/px/g, '1024$&')
@@ -717,7 +720,7 @@ function parseWiki(sender_psid, wiki) {
         data.title = title;
         data.link = link;
         data.image = image;
-        data.subtitle = subtitle;
+        data.subtitle = "To read about it click on the link below 👇";
         sendWiki(sender_psid, data);
         if (ele[index + 1] == undefined) {
             break;
